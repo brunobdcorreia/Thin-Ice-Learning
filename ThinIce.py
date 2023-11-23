@@ -212,21 +212,17 @@ class Game():
         pg.mixer.music.play(-1)
         
 
-    def run(self):
+    def run(self, action):
         '''This method is the game loop which runs most of the game '''
-        self.looping = True
-        while self.looping:
-            self.clock.tick(FPS)
-            self.events()
-            self.update()
-            self.draw()
 
-    def agent_run(self, agent):
-        '''This method is the game loop which runs most of the game '''
+        # State of the world
+        state = []
+        
         self.clock.tick(FPS)
-        self.agent_events(agent)
+        sheesh = self.events(action)
         self.update()
         self.draw()
+        return sheesh
             
     def update(self):
         '''This method updates all classes/objects as part of the game loop '''
@@ -295,21 +291,30 @@ class Game():
         pg.display.flip()
 
 
-    def agent_events(self, agent):
+    def events(self, action):
         '''This method handles the event handling'''
+        x_pos = self.player.x
+        y_pos = self.player.y
+        reward = 0
+        moved = self.moved
+        death = self.player.checkDeath()
+        level = self.currentLevel
+        score = self.scoreKeeperBottom.score
+        solved = self.scoreKeeperTop.solvedLevels
         
         # CONTROLS
-        if agent.action == 'up':
+        if action == 'up':
             self.player.checkAndMove(dy=-1)
-        elif agent.action == 'down':
+        elif action == 'down':
             self.player.checkAndMove(dy=1)
-        elif agent.action == 'left':
+        elif action == 'left':
             self.player.checkAndMove(dx=-1)
-        elif agent.action == 'right':
+        elif action == 'right':
             self.player.checkAndMove(dx=1)        
                
         #If player moved, check if he's on the finish line
         if self.moved:
+            moved = True
             # Update the scorekeepers
             self.scoreKeeperTop.completeTiles += 1
             self.scoreKeeperBottom.score += 1
@@ -319,7 +324,6 @@ class Game():
                 
                 # Checks if bonus score can be applied
                 if self.scoreKeeperTop.checkFinish():
-                    
                     
                     # Lets game remember last level you solved it
                     self.lastLevelSolved = True
@@ -331,13 +335,11 @@ class Game():
                     self.scoreKeeperTop.solvedLevels += 1  
                     
                     # Gives x2 bonus score if no reset/death, otherwise give the normal score
-                    
                     if not self.resetOnce:
                         self.scoreKeeperBottom.score += self.scoreKeeperTop.totalTiles * 2
                     else:
                         self.scoreKeeperBottom.score += self.scoreKeeperTop.totalTiles
                     
-                                   
                 
                 # Remind game player didn't solve last level    
                 else:
@@ -416,152 +418,7 @@ class Game():
             # Reset moved variable
             self.moved = False
 
-        # If the player stop moving
-        else:
-            agent.against_wall = True
-
-
-    def events(self):
-        '''This method handles the event handling'''
-        
-        # CONTROLS
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self.quit()
-
-            if event.type == pg.MOUSEBUTTONDOWN:
-                if event.button == 1 and self.resetButton.rect.collidepoint(pg.mouse.get_pos()):
-                    # Play reset animation and sounds and reset the map when hitting the button
-                    self.reset_game()
-                                
-            if event.type == pg.KEYDOWN:
-                # Exits the game with the ESC key    
-                if event.key == pg.K_ESCAPE:
-                    self.quit()
-                             
-                # Arrow keys handle the moving
-                if event.key == pg.K_LEFT or event.key == pg.K_a:
-                    self.player.checkAndMove(dx=-1)
-                if event.key == pg.K_RIGHT or event.key == pg.K_d:
-                    self.player.checkAndMove(dx=1)
-                if event.key == pg.K_UP or event.key == pg.K_w:
-                    self.player.checkAndMove(dy=-1)
-                if event.key == pg.K_DOWN or event.key == pg.K_s:
-                    self.player.checkAndMove(dy=1)
-
-                # 'R' key handles the reset
-                if event.key == pg.K_r:
-                    self.reset_game()
-                
-               
-        #If player moved, check if he's on the finish line
-        if self.moved:
-            # Update the scorekeepers
-            self.scoreKeeperTop.completeTiles += 1
-            self.scoreKeeperBottom.score += 1
-            
-            # Check if player touched the finish line yet
-            if self.player.collideWithTile(self.endTile):
-                
-                
-                # Checks if bonus score can be applied
-                if self.scoreKeeperTop.checkFinish():
-                    
-                    
-                    # Lets game remember last level you solved it
-                    self.lastLevelSolved = True
-                    
-                    # Plays the bonus sound effect
-                    self.allTileComplete.play()
-                    
-                    # Increase the number of solved by 1
-                    self.scoreKeeperTop.solvedLevels += 1  
-                    
-                    # Gives x2 bonus score if no reset/death, otherwise give the normal score
-                    
-                    if not self.resetOnce:
-                        self.scoreKeeperBottom.score += self.scoreKeeperTop.totalTiles * 2
-                    else:
-                        self.scoreKeeperBottom.score += self.scoreKeeperTop.totalTiles
-                    
-                                   
-                
-                # Remind game player didn't solve last level    
-                else:
-                    self.lastLevelSolved = False
-                
-                # Sets the previous score for the next level
-                self.scoreKeeperBottom.previousScore = self.scoreKeeperBottom.score
-                
-                # Update the total number of tiles the player melted overall in the game so far
-                self.scoreKeeperTop.playerMelted += self.scoreKeeperTop.completeTiles
-                
-                # Go to the next level
-                self.nextLevel()
-                
-            
-            # If treasure bag exists, check if player touched treasure bag, treasure only appears after level 3 in original game
-            elif self.lastLevelSolved and self.currentLevel > TREASURELEVEL:
-                if  self.player.collideWithTile(self.treasureTile):
-                    self.treasureTile.kill()
-                    self.treasureSound.play()
-                    self.scoreKeeperBottom.score += 100
-            
-            # Check if player touches key, only appears after level 9 in the original game        
-            if self.currentLevel > KEYLEVEL:
-                if self.player.collideWithTile(self.key):
-                    # Lets player open key sockets now
-                    self.key.kill()
-                    self.keyGet.play()
-                    self.hasKey = True
-            
-            
-            # If the player currently has the key, check if he's in the radius of the keyhole
-            if self.hasKey:
-                if self.player.nearTile(self.keyHole) != 0:
-                    #Delete the keyhole and replace with a free tile
-                    Free(self, self.keyHole.x, self.keyHole.y)
-                    self.keyGet.play()
-                    self.keyHole.kill()
-                    self.hasKey = False
-                    
-            # Checks if the player is able to teleport, only after level 16
-            if self.currentLevel > TELEPORTLEVEL:
-                    # Teleports to you to the other teleporter, make sure not to add score as well
-                    if self.player.collideWithTile(self.firstTeleporter):
-                        self.scoreKeeperTop.completeTiles -= 1
-                        self.scoreKeeperBottom.score -= 1
-                        
-                        if self.canTeleport:
-                            self.player.movetoCoordinate(self.secondTeleporter.x, self.secondTeleporter.y)
-                            self.canTeleport = False
-
-                            self.teleportSound.play()
-                        
-                    elif self.player.collideWithTile(self.secondTeleporter):
-                        self.scoreKeeperTop.completeTiles -= 1
-                        self.scoreKeeperBottom.score -= 1
-                        
-                        if self.canTeleport:
-                            self.player.movetoCoordinate(self.firstTeleporter.x, self.firstTeleporter.y)
-                            self.canTeleport = False
-
-                            self.teleportSound.play()
-                                                    
-            # If the player collided with the moving block tile, don't add score
-            if self.currentLevel > MOVINGBLOCKLEVEL and self.player.collideWithTile(self.movingBlockTile):
-                self.scoreKeeperTop.completeTiles -= 1
-                self.scoreKeeperBottom.score -= 1        
-            
-            # Checks if the player is unable to move anymore, continued
-            # explaination in Player class
-            if self.player.checkDeath():
-                # Play death animation and sounds and reset the map when hitting the button
-                self.player.setFrame(DYING)
-                self.playResetSounds()            
-                        
-            # Reset moved variable
-            self.moved = False
+        return [x_pos, y_pos, reward, moved, death, level, score, solved]
 
 
     def reset_game(self):
@@ -588,122 +445,7 @@ class Game():
     def quit(self):
         pg.quit()
         exit()
-    
-            
-            
-class TitleScreen():
-    '''This class defines the title screen of the main game'''
 
-    def __init__(self):
-        '''This initializer takes the main menu scene as a parameter, initalizes
-        the image and rect attributes and other variables used for the player'''
-        
-        # Starts up the game and the audio
-        pg.init()
-        pg.mixer.init()
-        
-        # Set title and icon
-        pg.display.set_caption("Thin-Ice!")
-        pg.display.set_icon(pg.image.load('data/images/icon.png'))
-        
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT))
-
-    def loadData(self):
-        '''This method loads data from files outside of Python'''
-        
-        # Loads the Background music
-        pg.mixer.music.load('data/sound/music.ogg')
-        pg.mixer.music.set_volume(0.1)
-        
-        # Sound effect when you click the button
-        self.clickSound = pg.mixer.Sound("data/sound/move.ogg")
-        self.clickSound.set_volume(0.2)
-         
-    def new(self):
-        '''This method initializes all the variables and sets up the game '''
-        
-        # Loads external data
-        self.loadData()
-        
-        # Creates the groups used for event handling later on
-        self.scoreSprites = pg.sprite.Group()
-        
-        # Plays and infinitely loops the music
-        pg.mixer.music.play(-1)
-        
-        # Clock used to set the frame rate
-        self.clock = pg.time.Clock()
-        
-        # Is the main menu pictures
-        self.mainMenu = BeginMenu(self)
-        
-        # The starting picture
-        self.startButton = Button(self, "start", 237, 390, 108, 32)
-
-    def run(self):
-        '''This method is the game loop which runs most of the game'''
-        self.looping = True
-        while self.looping:
-            self.clock.tick(FPS)
-            self.events()
-            self.update()
-            self.draw()
-            
-    def update(self):
-        '''This method updates all classes/objects as part of the game loop '''
-        self.scoreSprites.update()
-
-    def events(self):
-        '''This method handles the event handling'''
-        
-        # CONTROLS
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self.quit()
-
-            if event.type == pg.KEYDOWN:
-                # Exits the game with the ESC key    
-                if event.key == pg.K_ESCAPE:
-                    self.quit()
-
-                if event.key == pg.K_RETURN and self.startButton.buttonType == "start":
-                    # When player clicks the start button, or presses enter, show the instruction screen
-                    self.start()
-
-                elif event.key == pg.K_RETURN and self.startButton.buttonType == "play":
-                    self.play()
-
-            
-            if event.type == pg.MOUSEBUTTONDOWN:
-                # If the player clicks the start button, or presses enter, go to the next screen
-                if event.button == 1 and (self.startButton.rect.collidepoint(pg.mouse.get_pos())) and self.startButton.buttonType == "start":
-                    # When player clicks the start button, or presses enter, show the instruction screen
-                    self.start()
-                    
-                elif event.button == 1 and self.startButton.rect.collidepoint(pg.mouse.get_pos()) and self.startButton.buttonType == "play":
-                    self.play()
-
-
-    def start(self):
-        self.mainMenu.instructions()
-        self.startButton.__init__(self, "play", 237, 390, 108, 32)
-        self.clickSound.play()
-
-    def play(self):
-        self.clickSound.play()
-        # Start the actual game
-        x = Game()
-        x.new()
-        x.run()
-
-    def quit(self):
-        pg.quit()
-        exit()  
-                    
-    def draw(self):
-        '''This method draws all the sprites onto the screen '''
-        self.scoreSprites.draw(self.screen)
-        pg.display.flip()
 
 class ScoreScreen():
     ''' This class is the screen that displays your overall stats after finishing all 19 levels'''
@@ -840,9 +582,3 @@ class ScoreScreen():
         '''This method draws all the sprites onto the screen '''
         self.scoreSprites.draw(self.screen)       
         pg.display.flip()
-        
-# g = TitleScreen()
-
-# while True:
-#     g.new()
-#     g.run()

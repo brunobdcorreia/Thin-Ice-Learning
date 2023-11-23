@@ -12,13 +12,12 @@ class Agent:
         self.thinIce_game.new()
 
         while True:
-            if not self.against_wall:
-                self.action = 'left'
-            else:
-                self.action = 'right'
-            self.thinIce_game.agent_run(self)
+            # State has the format [x_pos, y_pos, reward, moved, death, level, score, solved]
+            state = self.thinIce_game.run('left')
+            
+            print(state)
+            if state[3] == False:
+                break
             
 
 Agent().start_game()
-
-    
