@@ -1,26 +1,24 @@
-import subprocess
+# Import ThinIce class from ThinIce.py
 import time
-import pydirectinput
+from ThinIce import *
 
-def run_thin_ice():
-    # Change the path to ThinIce.py accordingly
-    thin_ice_path = "C:\\Users\\oknotok\\Documents\\computacao\\Thin-Ice-Python\\ThinIce.py"
+class Agent:
+    def __init__(self):
+        self.action = ''
+        self.thinIce_game = Game()
+        self.against_wall = False
 
-    # Run Thin Ice game
-    subprocess.Popen(["python", thin_ice_path])
-    time.sleep(2)  # Wait for the game to start (adjust if needed)
+    def start_game(self):
+        self.thinIce_game.new()
 
-def press_return():
-    pydirectinput.press("return")
+        while True:
+            if not self.against_wall:
+                self.action = 'left'
+            else:
+                self.action = 'right'
+            self.thinIce_game.agent_run(self)
+            
 
-if __name__ == "__main__":
-    run_thin_ice()
+Agent().start_game()
+
     
-    # Simulate pressing the return key twice to start the game
-    press_return()
-    time.sleep(1)  # Adjust this delay if needed
-    press_return()
-
-    # Try to press the left arrow key
-    while True:
-        pydirectinput.press("left")

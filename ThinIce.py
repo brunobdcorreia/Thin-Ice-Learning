@@ -220,6 +220,13 @@ class Game():
             self.events()
             self.update()
             self.draw()
+
+    def agent_run(self, agent):
+        '''This method is the game loop which runs most of the game '''
+        self.clock.tick(FPS)
+        self.agent_events(agent)
+        self.update()
+        self.draw()
             
     def update(self):
         '''This method updates all classes/objects as part of the game loop '''
@@ -286,7 +293,133 @@ class Game():
         self.scoreSprites.draw(self.screen)
         self.updatingBlockGroup.draw(self.screen)
         pg.display.flip()
-              
+
+
+    def agent_events(self, agent):
+        '''This method handles the event handling'''
+        
+        # CONTROLS
+        if agent.action == 'up':
+            self.player.checkAndMove(dy=-1)
+        elif agent.action == 'down':
+            self.player.checkAndMove(dy=1)
+        elif agent.action == 'left':
+            self.player.checkAndMove(dx=-1)
+        elif agent.action == 'right':
+            self.player.checkAndMove(dx=1)        
+               
+        #If player moved, check if he's on the finish line
+        if self.moved:
+            # Update the scorekeepers
+            self.scoreKeeperTop.completeTiles += 1
+            self.scoreKeeperBottom.score += 1
+            
+            # Check if player touched the finish line yet
+            if self.player.collideWithTile(self.endTile):
+                
+                # Checks if bonus score can be applied
+                if self.scoreKeeperTop.checkFinish():
+                    
+                    
+                    # Lets game remember last level you solved it
+                    self.lastLevelSolved = True
+                    
+                    # Plays the bonus sound effect
+                    self.allTileComplete.play()
+                    
+                    # Increase the number of solved by 1
+                    self.scoreKeeperTop.solvedLevels += 1  
+                    
+                    # Gives x2 bonus score if no reset/death, otherwise give the normal score
+                    
+                    if not self.resetOnce:
+                        self.scoreKeeperBottom.score += self.scoreKeeperTop.totalTiles * 2
+                    else:
+                        self.scoreKeeperBottom.score += self.scoreKeeperTop.totalTiles
+                    
+                                   
+                
+                # Remind game player didn't solve last level    
+                else:
+                    self.lastLevelSolved = False
+                
+                # Sets the previous score for the next level
+                self.scoreKeeperBottom.previousScore = self.scoreKeeperBottom.score
+                
+                # Update the total number of tiles the player melted overall in the game so far
+                self.scoreKeeperTop.playerMelted += self.scoreKeeperTop.completeTiles
+                
+                # Go to the next level
+                self.nextLevel()
+                
+            
+            # If treasure bag exists, check if player touched treasure bag, treasure only appears after level 3 in original game
+            elif self.lastLevelSolved and self.currentLevel > TREASURELEVEL:
+                if  self.player.collideWithTile(self.treasureTile):
+                    self.treasureTile.kill()
+                    self.treasureSound.play()
+                    self.scoreKeeperBottom.score += 100
+            
+            # Check if player touches key, only appears after level 9 in the original game        
+            if self.currentLevel > KEYLEVEL:
+                if self.player.collideWithTile(self.key):
+                    # Lets player open key sockets now
+                    self.key.kill()
+                    self.keyGet.play()
+                    self.hasKey = True
+            
+            
+            # If the player currently has the key, check if he's in the radius of the keyhole
+            if self.hasKey:
+                if self.player.nearTile(self.keyHole) != 0:
+                    #Delete the keyhole and replace with a free tile
+                    Free(self, self.keyHole.x, self.keyHole.y)
+                    self.keyGet.play()
+                    self.keyHole.kill()
+                    self.hasKey = False
+                    
+            # Checks if the player is able to teleport, only after level 16
+            if self.currentLevel > TELEPORTLEVEL:
+                    # Teleports to you to the other teleporter, make sure not to add score as well
+                    if self.player.collideWithTile(self.firstTeleporter):
+                        self.scoreKeeperTop.completeTiles -= 1
+                        self.scoreKeeperBottom.score -= 1
+                        
+                        if self.canTeleport:
+                            self.player.movetoCoordinate(self.secondTeleporter.x, self.secondTeleporter.y)
+                            self.canTeleport = False
+
+                            self.teleportSound.play()
+                        
+                    elif self.player.collideWithTile(self.secondTeleporter):
+                        self.scoreKeeperTop.completeTiles -= 1
+                        self.scoreKeeperBottom.score -= 1
+                        
+                        if self.canTeleport:
+                            self.player.movetoCoordinate(self.firstTeleporter.x, self.firstTeleporter.y)
+                            self.canTeleport = False
+
+                            self.teleportSound.play()
+                                                    
+            # If the player collided with the moving block tile, don't add score
+            if self.currentLevel > MOVINGBLOCKLEVEL and self.player.collideWithTile(self.movingBlockTile):
+                self.scoreKeeperTop.completeTiles -= 1
+                self.scoreKeeperBottom.score -= 1        
+            
+            # Checks if the player is unable to move anymore, continued
+            # explaination in Player class
+            if self.player.checkDeath():
+                # Play death animation and sounds and reset the map when hitting the button
+                self.player.setFrame(DYING)
+                self.playResetSounds()            
+                        
+            # Reset moved variable
+            self.moved = False
+
+        # If the player stop moving
+        else:
+            agent.against_wall = True
+
 
     def events(self):
         '''This method handles the event handling'''
@@ -508,7 +641,7 @@ class TitleScreen():
         self.startButton = Button(self, "start", 237, 390, 108, 32)
 
     def run(self):
-        '''This method is the game loop which runs most of the game '''
+        '''This method is the game loop which runs most of the game'''
         self.looping = True
         while self.looping:
             self.clock.tick(FPS)
@@ -698,6 +831,7 @@ class ScoreScreen():
                 if event.button == 1 and self.finishButton.rect.collidepoint(pg.mouse.get_pos()) and self.finishButton.buttonType == "finish":
                     self.quit()
 
+
     def quit(self):
         pg.quit()
         exit()
@@ -707,8 +841,8 @@ class ScoreScreen():
         self.scoreSprites.draw(self.screen)       
         pg.display.flip()
         
-g = TitleScreen()
+# g = TitleScreen()
 
-while True:
-    g.new()
-    g.run()
+# while True:
+#     g.new()
+#     g.run()
