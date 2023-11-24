@@ -63,24 +63,24 @@ class Agent:
                 
     def update_q_table(self, curr_state, next_state, action):
         sample = self.get_sample(curr_state, next_state)
-        print(f'Sample: {sample}')
+        # print(f'Sample: {sample}')
         action_index = self.action_map[action]
-        print(f'Ação: {action}, index: {action_index}')
-        print(f'Q(s, a) antes de atualizar: {self.q_table[(curr_state[0], curr_state[1])][action_index]})')
+        # print(f'Ação: {action}, index: {action_index}')
+        # print(f'Q(s, a) antes de atualizar: {self.q_table[(curr_state[0], curr_state[1])][action_index]})')
         self.q_table[(curr_state[0], curr_state[1])][action_index] = (1 - self.learning_rate) * self.q_table[(curr_state[0], curr_state[1])][action_index] + self.learning_rate * sample
-        print(f'Q(s, a) depois de atualizar: {self.q_table[(curr_state[0], curr_state[1])][action_index]})')
+        # print(f'Q(s, a) depois de atualizar: {self.q_table[(curr_state[0], curr_state[1])][action_index]})')
 
     def get_sample(self, curr_state, next_state):
         reward = None
         # Se o agente tentou ir em direção a parede, ou à água, recompensa é negativa
         if not next_state[2]:
-            reward = -5
+            reward = -50
         # Se morreu, recompensa é negativa
         elif next_state[3]:
-            reward = -10
+            reward = -100
         # Se completou a fase
         elif next_state[4]:
-            reward = 10
+            reward = 100
         # Punir por andar
         else: reward = -5
 
@@ -90,15 +90,16 @@ class Agent:
 
     def explore(self, starting_level=1):
         m = self.thinIce_game.new(starting_level)
+        print('Mapa: ', m)
 
         self.load_q_table(starting_level)
 
         if self.q_table == {}:
             self.create_q_table(m)
         
-        print("Q-Table:")
-        for key, value in self.q_table.items():
-            print(f'{key}: {value}')
+        # print("Q-Table:")
+        # for key, value in self.q_table.items():
+        #     print(f'{key}: {value}')
 
         self.curr_state = self.thinIce_game.run(self.action[random.randint(0, 3)])
 
@@ -107,20 +108,20 @@ class Agent:
                 # [x_pos, y_pos, moved, death, solved, level]
                 # Take random actions
                 
-                print('Alterando estado...')
-                print('S: ', self.curr_state)
+                # print('Alterando estado...')
+                # print('S: ', self.curr_state)
 
                 action_taken = self.action[random.randint(0, 3)]
-                print('A: ', action_taken)
+                # print('A: ', action_taken)
 
                 next_state = self.thinIce_game.run(action_taken)
-                print('S\': ', next_state)
+                # print('S\': ', next_state)
 
                 self.update_q_table(self.curr_state, next_state, action_taken)
 
-                print("Q-Table:")
-                for key, value in self.q_table.items():
-                    print(f'{key}: {value}')
+                # print("Q-Table:")
+                # for key, value in self.q_table.items():
+                #     print(f'{key}: {value}')
                 
                 self.curr_state = next_state
 
