@@ -46,5 +46,10 @@ if __name__ == "__main__":
     # install_dependencies(args.dependency_file_path)
     game_agent = Agent(learning_rate=args.learning_rate, algorithm=args.algorithm, num_episodes=args.num_episodes, discount_factor=args.discount_factor)
     
-    for i in range(args.num_episodes):
-        game_agent.start_game(args.starting_level)
+    # # Colect episodes
+    # for i in range(args.num_episodes):
+    #     game_agent.explore(args.starting_level)
+
+    # Exploit
+    game_agent.exploit(args.starting_level)
+    
