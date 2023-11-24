@@ -1,6 +1,13 @@
-import importlib.util
+import sys
 import os
+
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+sys.path.append(parent)
+
+import importlib.util
 import argparse
+from agent import Agent
 
 def module_is_installed(module_name: str) -> bool:
     spec = importlib.util.find_spec(module_name)
@@ -25,24 +32,19 @@ def install_dependencies(dependency_file_path: str):
 def parse_cmd_arguments():
     parser = argparse.ArgumentParser(description='Trabalho de IA')
     parser.add_argument('--dependency-file-path', type=str, default='../requirements.txt', help='Caminho para o arquivo de dependências')
-    parser.add_argument('--roms-directory-path', type=str, default='../autorom', help='Caminho para o diretório de ROMs')
-    parser.add_argument('--game', type=str, default='LostLuggage-v5', help='Nome do jogo a ser executado')
-    parser.add_argument('--render-mode', type=str, default='human', help='Modo de renderização')
+    parser.add_argument('--learning-rate', type=float, default=0.75, help='Taxa de aprendizado do agente')
+    parser.add_argument('--algorithm', type=str, default='q-learning', help='Algoritmo a ser executado. Pode ser A-star ou Q-learning')
+    parser.add_argument('--num-episodes', type=int, default=10, help='Número de episódios para treinamento')
+    parser.add_argument('--discount-factor', type=float, default=0.99, help='Fator de desconto do agente.')
+    parser.add_argument('--starting-level', type=int, default=1, help='Nível inicial do jogo.')
+
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
     args = parse_cmd_arguments()
-    install_dependencies(args.dependency_file_path)
+    # install_dependencies(args.dependency_file_path)
+    game_agent = Agent(learning_rate=args.learning_rate, algorithm=args.algorithm, num_episodes=args.num_episodes, discount_factor=args.discount_factor)
     
-    import gymnasium as gym
-    import shimmy
-    import ale_py
-
-    env = gym.make(f'ALE/{args.game}', render_mode=args.render_mode)
-    env.metadata['render_fps'] = 60
-    env.reset()
-    for _ in range(1000):
-        env.render()
-        env.step(env.action_space.sample())
-    env.close()
+    for i in range(args.num_episodes):
+        game_agent.start_game(args.starting_level)

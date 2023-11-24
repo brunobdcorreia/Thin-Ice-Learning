@@ -25,6 +25,7 @@ class Game():
         pg.key.set_repeat(200, 175)
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         
+
     def loadData(self):
         '''This method loads data from files outside of Python'''
         self.playerSpriteSheet = Spritesheet(PLAYERSPRITE, PLAYERXML)
@@ -72,16 +73,18 @@ class Game():
         self.teleportSound = pg.mixer.Sound("data/sound/teleportSound.ogg")
         self.teleportSound.set_volume(0.2)
         
-    def loadMap(self):
+
+    # Adicionar depois a seleção de níveis
+    def loadMap(self, level_number=None):
         '''Load the current level by reading a parameter '''
         
         #Resets the map-related variables
         mapData = []
         totalFree = 0
         
-        
         # Opens the file and appends all the data to mapData
-        fileName = "data/maps/level%d.txt" % self.currentLevel
+        level_to_load = self.currentLevel if level_number is None else level_number
+        fileName = f"data/maps/level{level_to_load}.txt" 
         currentMap = open(fileName, "r")
         for line in currentMap:
             mapData.append(line)
@@ -150,9 +153,13 @@ class Game():
         self.scoreKeeperTop.completeTiles = 0
         # update current level number
         self.scoreKeeperTop.currentLevel = self.currentLevel
-        
 
-    def new(self):
+        return mapData
+        
+    
+
+
+    def new(self, start_level=1):
         '''This method initializes all the variables and sets up the game '''
         
         # Loads external data
@@ -206,39 +213,40 @@ class Game():
         self.resetButton = Button(self, "reset", 65, HEIGHT - 13, 72, 21)
         
         # Load the map
-        self.loadMap()
+        m = self.loadMap(start_level)
         
         # Plays and infinitely loops the music
         pg.mixer.music.play(-1)
+
+        return m
         
 
     def run(self, action):
         '''This method is the game loop which runs most of the game '''
-
-        # State of the world
-        state = []
-        
         self.clock.tick(FPS)
-        sheesh = self.events(action)
+        state = self.events(action)
         self.update()
         self.draw()
-        return sheesh
+        return state
+            
             
     def update(self):
         '''This method updates all classes/objects as part of the game loop '''
         self.allSprites.update()
         self.scoreSprites.update()
     
+
     def deleteMap(self):
         '''This method deletes all tiles in the current level '''
         for tiles in self.allSprites:
             tiles.kill()
             
+
     def playResetSounds(self):
         '''This method plays the relevant sounds when you reset or when you die '''
         self.deadSound.play()
         self.resetSound.play()        
-    
+
                
     def reset(self):
         ''' This method resets the current level '''
@@ -268,10 +276,8 @@ class Game():
         self.currentLevel += 1
         
         if self.currentLevel == 20:
-            # Play the score screen
-            w = ScoreScreen(self.scoreKeeperTop, self.scoreKeeperBottom)
-            w.new()
-            w.run()
+            # Finish the game
+            self.quit()
         
         # Empty out the map and load new map
         self.deleteMap()
@@ -282,7 +288,8 @@ class Game():
         
         # Reset teleporter status
         self.canTeleport = True
-            
+
+
     def draw(self):
         '''This method draws all the sprites onto the screen '''
         self.allSprites.draw(self.screen)
@@ -293,15 +300,6 @@ class Game():
 
     def events(self, action):
         '''This method handles the event handling'''
-        x_pos = self.player.x
-        y_pos = self.player.y
-        reward = 0
-        moved = self.moved
-        death = self.player.checkDeath()
-        level = self.currentLevel
-        score = self.scoreKeeperBottom.score
-        solved = self.scoreKeeperTop.solvedLevels
-        
         # CONTROLS
         if action == 'up':
             self.player.checkAndMove(dy=-1)
@@ -311,10 +309,22 @@ class Game():
             self.player.checkAndMove(dx=-1)
         elif action == 'right':
             self.player.checkAndMove(dx=1)        
+        elif action == 'stay':
+            pass
+
+        x_pos = self.player.x
+        y_pos = self.player.y
+        reward = 0
+        moved = self.moved
+        death = self.player.checkDeath() if not self.player.collideWithTile(self.endTile) else False
+        level = self.currentLevel
+        score = self.scoreKeeperBottom.score
+        solved = self.player.collideWithTile(self.endTile)
+        is_there_key = self.currentLevel > KEYLEVEL
+        haskey = self.hasKey
                
         #If player moved, check if he's on the finish line
         if self.moved:
-            moved = True
             # Update the scorekeepers
             self.scoreKeeperTop.completeTiles += 1
             self.scoreKeeperBottom.score += 1
@@ -418,167 +428,10 @@ class Game():
             # Reset moved variable
             self.moved = False
 
-        return [x_pos, y_pos, reward, moved, death, level, score, solved]
-
+        # return [x_pos, y_pos, reward, moved, death, level, score, solved, is_there_key, haskey]
+        return [x_pos, y_pos, moved, death, solved, level]
 
     def reset_game(self):
         self.reset()
         self.player.setFrame(RESETTING)
         self.playResetSounds()
-
-    def up(self):
-        '''This method moves the player up '''
-        self.player.checkAndMove(dy=-1)
-
-    def down(self):
-        '''This method moves the player down '''
-        self.player.checkAndMove(dy=1)
-
-    def left(self):
-        '''This method moves the player left '''
-        self.player.checkAndMove(dx=-1)
-
-    def right(self):
-        '''This method moves the player right '''
-        self.player.checkAndMove(dx=1)
-
-    def quit(self):
-        pg.quit()
-        exit()
-
-
-class ScoreScreen():
-    ''' This class is the screen that displays your overall stats after finishing all 19 levels'''
-    
-    def __init__(self, scoreBoardTop, scoreBoardBottom):
-        '''This initializer takes the main menu scene as a parameter, initalizes
-        the image and rect attributes and other variables used for the player'''
-        
-        # Starts up the game and the audio
-        pg.init()
-        pg.mixer.init()
-        
-        # Set title and icon
-        pg.display.set_caption("Thin-Ice!")
-        pg.display.set_icon(pg.image.load('data/images/icon.png'))
-        
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT))
-        
-        
-        # The stats of the player
-        self.levelSolved = scoreBoardTop.solvedLevels
-        self.iceMelted = scoreBoardTop.playerMelted
-        self.totalScore = scoreBoardBottom.score
-          
-    def loadData(self):
-        '''This method loads data from files outside of Python'''
-        
-        # Loads the Background music
-        pg.mixer.music.load('data/sound/winner.ogg')
-        pg.mixer.music.set_volume(0.1)
-
-        # Instantiate the font used for the game
-        self.font = pg.font.Font("data/font/arcade.ttf", 18) 
-        
-        # Puffle image
-        self.puffle= pg.image.load("data/images/puffle.png")
-        
-        # Sound effect when a line loads
-        self.lineSound = pg.mixer.Sound("data/sound/move.ogg")
-        self.lineSound.set_volume(0.2)
-               
-        # Sound effect when the puffle loads
-        self.puffleSound = pg.mixer.Sound("data/sound/allTileComplete.ogg")
-        self.puffleSound.set_volume(0.2)
-
-    def new(self):
-        '''This method initializes all the variables and sets up the game '''
-        
-        # Loads external data
-        self.loadData()
-        
-        # Creates the groups used for event handling later on
-        self.scoreSprites = pg.sprite.Group()
-        
-        # Plays and infinitely loops the music
-        pg.mixer.music.play(-1)
-        
-        # Clock used to set the frame rate
-        self.clock = pg.time.Clock()
-        
-        # Counter used to display text in a timely manner
-        self.counter = 0
-                
-        # The button to close the game
-        self.finishButton = Button(self, "finish", 237, 390, 108, 32)
-        
-        self.levelSolvedText = self.font.render("Total levels solved:%21d" % self.levelSolved, 1 , (0,0,0))
-        self.iceMeltedText = self.font.render("Total ice melted:%25d" % self.iceMelted, 1 , (0,0,0))
-        self.totalScoreText = self.font.render("Total points:%32d" % self.totalScore, 1, (0,0,0))
-        
-        # Light blue background
-        self.screen.fill((217,241, 255))
-               
-    def run(self): 
-        '''This method is the game loop which runs most of the game '''
-        self.looping = True
-        while self.looping:
-            self.clock.tick(FPS)
-            self.events()
-            self.update()
-            self.draw()
-            
-            
-    def update(self):
-        '''This method updates all classes/objects as part of the game loop '''
-        self.scoreSprites.update()
-        
-        # Blits each stat line every 0.75 seconds
-        if self.counter == 1:
-            self.screen.blit(self.levelSolvedText, (75,25))
-            pg.time.delay(750)
-            self.lineSound.play()
-        elif self.counter == 2:
-            self.screen.blit(self.iceMeltedText, (75,75))
-            pg.time.delay(750)
-            self.lineSound.play()
-        elif self.counter == 3:
-            self.screen.blit(self.totalScoreText, (75,125))
-            pg.time.delay(750)
-            self.lineSound.play()
-        elif self.counter == 4:
-            self.screen.blit(self.puffle, (170,150))
-            pg.time.delay(750)
-            self.puffleSound.play()
-        self.counter += 1 
-        
-    def events(self):
-        '''This method handles the event handling'''
-        
-        # CONTROLS
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self.quit()
-            
-            if event.type == pg.KEYDOWN:
-                # Exits the game with the ESC key    
-                if event.key == pg.K_ESCAPE:
-                    self.quit()
-
-                if event.key == pg.K_RETURN and self.finishButton.buttonType == "finish":
-                    # When player clicks the start button, or presses enter, show the instruction screen
-                    self.quit()
-
-            if event.type == pg.MOUSEBUTTONDOWN:
-                if event.button == 1 and self.finishButton.rect.collidepoint(pg.mouse.get_pos()) and self.finishButton.buttonType == "finish":
-                    self.quit()
-
-
-    def quit(self):
-        pg.quit()
-        exit()
-                    
-    def draw(self):
-        '''This method draws all the sprites onto the screen '''
-        self.scoreSprites.draw(self.screen)       
-        pg.display.flip()
