@@ -81,7 +81,8 @@ class Agent:
         # Se completou a fase
         elif next_state[4]:
             reward = 10
-        else: reward = -1
+        # Punir por andar
+        else: reward = -5
 
         # [i, j, up, left, down, right]
         sample = reward + self.discount_factor * max(self.q_table[(next_state[0], next_state[1])])
