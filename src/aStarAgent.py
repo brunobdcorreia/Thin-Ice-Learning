@@ -70,8 +70,25 @@ class AStarAgent:
         for key, value in self.map.items():
             self.logger.info(f'{key}: {value}')
 
-    def h(self, tile, goal):
-        return abs(tile[0] - goal[0]) + abs(tile[1] - goal[1])
+    def h(self, tile):
+        return abs(tile[0] - self.goal[0]) + abs(tile[1] - self.goal[1])
+
+    def next_states(self, tile):
+        moves = self.map[tile]
+        next_states = []
+
+        for i in range(len(moves)):
+            if moves[i] == 1:
+                if i == 0:
+                    next_states.append((tile[0], tile[1] - 1))
+                elif i == 1:
+                    next_states.append((tile[0] - 1, tile[1]))
+                elif i == 2:
+                    next_states.append((tile[0], tile[1] + 1))
+                elif i == 3:
+                    next_states.append((tile[0] + 1, tile[1]))
+
+        return next_states
 
     def aStar(self, starting_level=1):
         m = self.thinIce_game.new(starting_level)
@@ -96,7 +113,7 @@ class AStarAgent:
 
         # Setando f() dos tiles
         f_score = {tile: float('inf') for tile in self.map}
-        f_score[self.start] = self.h(self.start, self.goal)
+        f_score[self.start] = self.h(self.start)
 
         # Printando os valores iniciais de g() e f()
         print("g_score:")
@@ -110,6 +127,10 @@ class AStarAgent:
 
         # Setando a fila de prioridade
         open_set = PriorityQueue()
-
+        open_set.put((self.start, f_score[self.start]))
+        
+        print("open_set:\n[(x, y), f_score]")
+        for i in open_set.queue:
+            print(i)
 
 
