@@ -7,7 +7,8 @@ sys.path.append(parent)
 
 import importlib.util
 import argparse
-from agent import Agent
+from qAgent import QAgent
+from aStarAgent import AStarAgent
 
 def module_is_installed(module_name: str) -> bool:
     spec = importlib.util.find_spec(module_name)
@@ -37,27 +38,33 @@ def parse_cmd_arguments():
     parser.add_argument('--num-episodes', type=int, default=10, help='Número de episódios para treinamento')
     parser.add_argument('--discount-factor', type=float, default=0.99, help='Fator de desconto do agente.')
     parser.add_argument('--starting-level', type=int, default=1, help='Nível inicial do jogo.')
-    parser.add_argument('--exploit', type=bool, default=True, help='Se o agente vai explorar ou não')
+    parser.add_argument('--exploit', type=bool, default=False, help='Se o agente vai exploitar ou não')
     parser.add_argument('--explore', type=bool, default=False, help='Se o agente vai explorar ou não')
+    parser.add_argument('--full-run', type=bool, default=False, help='Se o agente vai exploitar todos os mapas')
 
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
     args = parse_cmd_arguments()
-    # install_dependencies(args.dependency_file_path)
-    game_agent = Agent(learning_rate=args.learning_rate, algorithm=args.algorithm, num_episodes=args.num_episodes, discount_factor=args.discount_factor)
-    
-    # # Colect episodes
-    # for i in range(args.num_episodes):
-    #     game_agent.explore(args.starting_level)
 
-    if args.exploit:
-        game_agent.exploit(args.starting_level)
-    elif args.explore:
-        for i in range(args.num_episodes):
-            print(f'Episódio {i+1}')
-            game_agent.explore(args.starting_level)
-    else:
-        print('Nenhuma opção selecionada. Por favor, selecione --exploit ou --explore')
+    # # Q-learning
+    # game_agent = QAgent(learning_rate=args.learning_rate, algorithm=args.algorithm, num_episodes=args.num_episodes, discount_factor=args.discount_factor)
+
+    # if args.exploit:
+    #     game_agent.exploit(args.starting_level)
+    # elif args.explore:
+    #     for i in range(args.num_episodes):
+    #         print(f'Episódio {i+1}')
+    #         game_agent.explore(args.starting_level)
+    # elif args.full_run:
+    #     for i in range(1, 10):
+    #         print(f'Episódio {i}')
+    #         game_agent.exploit(i)
+    # else:
+    #     print('Nenhuma opção selecionada. Por favor, selecione --exploit ou --explore')
     
+
+    # A-star
+    game_agent = AStarAgent()
+    game_agent.aStar(args.starting_level)

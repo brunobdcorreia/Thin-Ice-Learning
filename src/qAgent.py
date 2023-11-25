@@ -6,7 +6,8 @@ import numpy as np
 import os
 import logging
 import pickle as pkl
-class Agent:
+
+class QAgent:
     def __init__(self, learning_rate, algorithm, num_episodes, discount_factor):
         self.learning_rate = learning_rate
         self.algorithm = algorithm
@@ -44,13 +45,13 @@ class Agent:
 
     # Salva Q-table em um TXT
     def save_q_table(self, current_level: int) -> None:
-        filename = f'data/behavior/q_table{current_level}.pkl'
+        filename = f'data/behavior/any_percent/q_table{current_level}.pkl'
         with open(filename, 'wb') as f:
             pkl.dump(self.q_table, f)
 
     # Carrega Q-table de um TXT
     def load_q_table(self, current_level: int) -> None:
-        filename = f'data/behavior/q_table{current_level}.pkl'
+        filename = f'data/behavior/any_percent/q_table{current_level}.pkl'
         if os.path.exists(filename):
             with open(filename, 'rb') as f:
                 self.q_table = pkl.load(f)
@@ -90,7 +91,6 @@ class Agent:
 
     def explore(self, starting_level=1):
         m = self.thinIce_game.new(starting_level)
-        print('Mapa: ', m)
 
         self.load_q_table(starting_level)
 
