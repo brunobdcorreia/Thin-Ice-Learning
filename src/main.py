@@ -39,6 +39,7 @@ def parse_cmd_arguments():
     parser.add_argument('--discount-factor', type=float, default=0.99, help='Fator de desconto do agente.')
     parser.add_argument('--starting-level', type=int, default=1, help='Nível inicial do jogo.')
     parser.add_argument('--exploit', type=bool, default=False, help='Se o agente vai exploitar ou não')
+    parser.add_argument('--metricas', type=bool, default=False, help='Roda cada sessão de treinamento e mostra o total de recompensa')
     parser.add_argument('--explore', type=bool, default=False, help='Se o agente vai explorar ou não')
     parser.add_argument('--full-run', type=bool, default=True, help='Se o agente vai exploitar todos os mapas')
 
@@ -58,9 +59,14 @@ if __name__ == "__main__":
             for i in range(args.num_episodes):
                 print(f'Episódio {i+1}')
                 game_agent.explore(args.starting_level)
+        elif args.metricas:
+            for i in range(args.num_episodes):
+                print(f'Episódio {i+1}')
+                game_agent.explore(args.starting_level)
+                game_agent.exploit(args.starting_level)
         elif args.full_run:
             for i in range(1, 10):
-                print(f'Episódio {i}')
+                print(f'Fase {i}')
                 game_agent.exploit(i)
         else:
             print('Nenhuma opção selecionada. Por favor, selecione --exploit ou --explore')

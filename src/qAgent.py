@@ -6,7 +6,8 @@ import numpy as np
 import os
 import logging
 import pickle as pkl
-
+from Logger import Logger
+from timeit import default_timer as timer
 class QAgent:
     def __init__(self, learning_rate, algorithm, num_episodes, discount_factor):
         self.learning_rate = learning_rate
@@ -136,7 +137,7 @@ class QAgent:
             self.print_q_table()
 
 
-    def exploit(self, starting_level=1):
+    def exploit(self, starting_level=1, time_in_seconds=1):
         m = self.thinIce_game.new(starting_level)
 
         self.load_q_table(starting_level)
@@ -144,30 +145,36 @@ class QAgent:
         if self.q_table == {}:
             return print('Q-table vazia. Execute o método explore() primeiro.')
         
-        print("Q-Table:")
-        for key, value in self.q_table.items():
-            print(f'{key}: {value}')
+        with open("q_states.txt", "a") as file:
+            logger = Logger(1,'cvs',file)
+            for key, value in self.q_table.items():
+                logger.log_cvs(*key,*value)
 
         self.curr_state = self.thinIce_game.run(self.action[random.randint(0, 3)])
 
+        total_reward = 0
+        startTime = timer()
+        logger = Logger(4)
         try:
             while True:         
-                # [x_pos, y_pos, moved, death, solved, level]
-                # Take random actions
-                
-                print('Alterando estado...')
-                print('S: ', self.curr_state)
-
-                action_taken = self.action[np.argmax(self.q_table[(self.curr_state[0], self.curr_state[1])])]
-                print('A: ', action_taken)
+                if (timer() - startTime > time_in_seconds):
+                    break
+                logger.log(f'S: {self.curr_state}', level=4)
+                action_taken = np.argmax(self.q_table[(self.curr_state[0], self.curr_state[1])])
+                total_reward += self.q_table[(self.curr_state[0], self.curr_state[1])][action_taken]
+                action_taken = self.action[action_taken]
+                logger.log(f'A: {action_taken}', level=4)
 
                 next_state = self.thinIce_game.run(action_taken)
-                print('S\': ', next_state)
+                logger.log(f'S\': {next_state}', level=4)
 
                 self.curr_state = next_state
 
                 if self.curr_state[4] or self.curr_state[3]:
                     break
+            with open("total_reward.txt", "a") as file:
+                logger_cvs = Logger(1,'cvs',file)
+                logger_cvs.log_cvs(total_reward)
         
         except Exception as e:
             self.logger.info(f'Erro: {e}')
