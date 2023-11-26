@@ -8,7 +8,8 @@ sys.path.append(parent)
 import importlib.util
 import argparse
 from qAgent import QAgent
-from aStarAgent import AStarAgent
+# from aStarAgent import AStarAgent
+from aStarAgent2 import AStarAgent
 
 def module_is_installed(module_name: str) -> bool:
     spec = importlib.util.find_spec(module_name)
@@ -34,10 +35,10 @@ def parse_cmd_arguments():
     parser = argparse.ArgumentParser(description='Trabalho de IA')
     parser.add_argument('--dependency-file-path', type=str, default='../requirements.txt', help='Caminho para o arquivo de dependências')
     parser.add_argument('--learning-rate', type=float, default=0.75, help='Taxa de aprendizado do agente')
-    parser.add_argument('--algorithm', type=str, default='q-learning', help='Algoritmo a ser executado. Pode ser A-star ou Q-learning')
+    parser.add_argument('--algorithm', type=str, default='a-star', help='Algoritmo a ser executado. Pode ser A-star ou Q-learning')
     parser.add_argument('--num-episodes', type=int, default=10, help='Número de episódios para treinamento')
     parser.add_argument('--discount-factor', type=float, default=0.99, help='Fator de desconto do agente.')
-    parser.add_argument('--starting-level', type=int, default=1, help='Nível inicial do jogo.')
+    parser.add_argument('--starting-level', type=int, default=6, help='Nível inicial do jogo.')
     parser.add_argument('--exploit', type=bool, default=False, help='Se o agente vai exploitar ou não')
     parser.add_argument('--explore', type=bool, default=False, help='Se o agente vai explorar ou não')
     parser.add_argument('--full-run', type=bool, default=True, help='Se o agente vai exploitar todos os mapas')
@@ -68,6 +69,7 @@ if __name__ == "__main__":
     elif args.algorithm == 'a-star': 
         # A-star
         game_agent = AStarAgent()
-        game_agent.aStar(args.starting_level)
+        path = game_agent.aStar(args.starting_level)
+        game_agent.exploit(args.starting_level, path)
 
     else: print('Algoritmo inválido. Por favor, selecione A-star ou Q-learning')
