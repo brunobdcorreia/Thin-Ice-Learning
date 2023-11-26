@@ -64,7 +64,7 @@ class QAgent:
             self.logger.info(f'{key}: {value}')
                 
     def update_q_table(self, curr_state, next_state, action):
-        sample = self.get_sample(curr_state, next_state)
+        sample = self.get_sample(next_state)
         # print(f'Sample: {sample}')
         action_index = self.action_map[action]
         # print(f'Ação: {action}, index: {action_index}')
@@ -72,31 +72,32 @@ class QAgent:
         self.q_table[(curr_state[0], curr_state[1])][action_index] = (1 - self.learning_rate) * self.q_table[(curr_state[0], curr_state[1])][action_index] + self.learning_rate * sample
         # print(f'Q(s, a) depois de atualizar: {self.q_table[(curr_state[0], curr_state[1])][action_index]})')
 
-    def get_sample(self, curr_state, next_state):
+    def get_sample(self, next_state):
         reward = None
         # Se o agente tentou ir em direção a parede, ou à água, recompensa é negativa
         if not next_state[2]:
-            reward = -50
+            reward = -5
         # Se morreu, recompensa é negativa
         elif next_state[3]:
-            reward = -100
+            reward = -5
         # Se completou a fase
         elif next_state[4]:
-            reward = 100
+            reward = 1000
         # Punir por andar
-        else: reward = -5
+        else: reward = -1
 
         # [i, j, up, left, down, right]
         sample = reward + self.discount_factor * max(self.q_table[(next_state[0], next_state[1])])
         return sample
 
-    def explore(self, starting_level=1):
+    def explore(self, starting_level=1, xExploitation=0):
         m = self.thinIce_game.new(starting_level)
 
         self.load_q_table(starting_level)
 
         if self.q_table == {}:
             self.create_q_table(m)
+            self.save_q_table(starting_level)
         
         # print("Q-Table:")
         # for key, value in self.q_table.items():
@@ -110,13 +111,12 @@ class QAgent:
                 # Take random actions
                 
                 # print('Alterando estado...')
-                # print('S: ', self.curr_state)
-
-                action_taken = self.action[random.randint(0, 3)]
-                # print('A: ', action_taken)
+                if random.random() < xExploitation:
+                    action_taken = np.argmax(self.q_table[(self.curr_state[0], self.curr_state[1])])
+                else:
+                    action_taken = self.action[random.randint(0, 3)]
 
                 next_state = self.thinIce_game.run(action_taken)
-                # print('S\': ', next_state)
 
                 self.update_q_table(self.curr_state, next_state, action_taken)
 
@@ -127,12 +127,14 @@ class QAgent:
                 self.curr_state = next_state
 
                 if self.curr_state[4] or self.curr_state[3]:
+                    print("terminou de explorar!!!!")
                     self.save_q_table(starting_level)
                     # Clear self.q_table
                     self.q_table.clear()
                     break
 
         except Exception as e:
+            print(e)
             self.logger.info(f'Erro: {e}')
             self.print_q_table()
 
@@ -145,16 +147,17 @@ class QAgent:
         if self.q_table == {}:
             return print('Q-table vazia. Execute o método explore() primeiro.')
         
-        with open("q_states.txt", "a") as file:
-            logger = Logger(1,'cvs',file)
+        with open("data/q_states.csv", "a") as file:
+            logger = Logger(1,file)
             for key, value in self.q_table.items():
-                logger.log_cvs(*key,*value)
+                logger.log_csv(*key,*value, level=1)
 
         self.curr_state = self.thinIce_game.run(self.action[random.randint(0, 3)])
 
         total_reward = 0
         startTime = timer()
-        logger = Logger(4)
+        logger = Logger(1)
+        numPassos = 0;
         try:
             while True:         
                 if (timer() - startTime > time_in_seconds):
@@ -169,12 +172,13 @@ class QAgent:
                 logger.log(f'S\': {next_state}', level=4)
 
                 self.curr_state = next_state
+                numPassos+=1
 
                 if self.curr_state[4] or self.curr_state[3]:
                     break
-            with open("total_reward.txt", "a") as file:
-                logger_cvs = Logger(1,'cvs',file)
-                logger_cvs.log_cvs(total_reward)
+            with open("data/total_reward.csv", "a") as file:
+                logger_cvs = Logger(1,file)
+                logger_cvs.log_csv(total_reward, numPassos)
         
         except Exception as e:
             self.logger.info(f'Erro: {e}')
