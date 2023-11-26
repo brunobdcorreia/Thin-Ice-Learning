@@ -52,18 +52,18 @@ if __name__ == "__main__":
 
     # # Q-learning
     if args.algorithm == 'q-learning':
-        game_agent = QAgent(learning_rate=args.learning_rate, algorithm=args.algorithm, num_episodes=args.num_episodes, discount_factor=args.discount_factor)
+        game_agent = QAgent(learning_rate=args.learning_rate, algorithm=args.algorithm, num_episodes=args.num_episodes, discount_factor=args.discount_factor, xExploitation=args.xExploit)
 
         if args.exploit:
             game_agent.exploit(args.starting_level)
         elif args.explore:
             for i in range(args.num_episodes):
                 print(f'Episódio {i+1}')
-                game_agent.explore(args.starting_level, xExploitation=args.xExploit)
+                game_agent.explore(args.starting_level)
         elif args.metricas:
             for i in range(args.num_episodes):
                 print(f'Episódio {i+1}')
-                game_agent.explore(args.starting_level, xExploitation=args.xExploit)
+                game_agent.explore(args.starting_level)
                 game_agent.exploit(args.starting_level)
         elif args.full_run:
             for i in range(1, 10):

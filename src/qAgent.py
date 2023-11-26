@@ -9,7 +9,7 @@ import pickle as pkl
 from Logger import Logger
 from timeit import default_timer as timer
 class QAgent:
-    def __init__(self, learning_rate, algorithm, num_episodes, discount_factor):
+    def __init__(self, learning_rate, algorithm, num_episodes, discount_factor, xExploitation):
         self.learning_rate = learning_rate
         self.algorithm = algorithm
         self.num_episodes = num_episodes
@@ -21,6 +21,8 @@ class QAgent:
         self.curr_state = []
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
+        self.xExploitation = xExploitation
+
 
         handler = logging.FileHandler('./q_table_debug.txt')
         handler.setLevel(logging.INFO)
@@ -46,13 +48,13 @@ class QAgent:
 
     # Salva Q-table em um TXT
     def save_q_table(self, current_level: int) -> None:
-        filename = f'data/behavior/any_percent/q_table{current_level}.pkl'
+        filename = f'data/behavior/any_percent/q_table{current_level}-{self.learning_rate}-{self.discount_factor}-{self.xExploitation}.pkl'
         with open(filename, 'wb') as f:
             pkl.dump(self.q_table, f)
 
     # Carrega Q-table de um TXT
     def load_q_table(self, current_level: int) -> None:
-        filename = f'data/behavior/any_percent/q_table{current_level}.pkl'
+        filename = f'data/behavior/any_percent/q_table{current_level}-{self.learning_rate}-{self.discount_factor}-{self.xExploitation}.pkl'
         if os.path.exists(filename):
             with open(filename, 'rb') as f:
                 self.q_table = pkl.load(f)
@@ -79,7 +81,7 @@ class QAgent:
             reward = -5
         # Se morreu, recompensa é negativa
         elif next_state[3]:
-            reward = -5
+            reward = -50
         # Se completou a fase
         elif next_state[4]:
             reward = 1000
@@ -90,18 +92,13 @@ class QAgent:
         sample = reward + self.discount_factor * max(self.q_table[(next_state[0], next_state[1])])
         return sample
 
-    def explore(self, starting_level=1, xExploitation=0):
+    def explore(self, starting_level=1):
         m = self.thinIce_game.new(starting_level)
 
         self.load_q_table(starting_level)
 
         if self.q_table == {}:
             self.create_q_table(m)
-            self.save_q_table(starting_level)
-        
-        # print("Q-Table:")
-        # for key, value in self.q_table.items():
-        #     print(f'{key}: {value}')
 
         self.curr_state = self.thinIce_game.run(self.action[random.randint(0, 3)])
 
@@ -111,8 +108,9 @@ class QAgent:
                 # Take random actions
                 
                 # print('Alterando estado...')
-                if random.random() < xExploitation:
-                    action_taken = np.argmax(self.q_table[(self.curr_state[0], self.curr_state[1])])
+                y = random.random()
+                if y <= self.xExploitation:
+                    action_taken = self.action[np.argmax(self.q_table[(self.curr_state[0], self.curr_state[1])])]
                 else:
                     action_taken = self.action[random.randint(0, 3)]
 
@@ -134,12 +132,12 @@ class QAgent:
                     break
 
         except Exception as e:
-            print(e)
+            print("erro", e)
             self.logger.info(f'Erro: {e}')
             self.print_q_table()
 
 
-    def exploit(self, starting_level=1, time_in_seconds=1):
+    def exploit(self, starting_level=1, time_in_seconds=3):
         m = self.thinIce_game.new(starting_level)
 
         self.load_q_table(starting_level)
@@ -147,7 +145,7 @@ class QAgent:
         if self.q_table == {}:
             return print('Q-table vazia. Execute o método explore() primeiro.')
         
-        with open("data/q_states.csv", "a") as file:
+        with open(f"data/runs/q_state{starting_level}-{self.learning_rate}-{self.discount_factor}-{self.xExploitation}.csv", "a") as file:
             logger = Logger(1,file)
             for key, value in self.q_table.items():
                 logger.log_csv(*key,*value, level=1)
@@ -172,11 +170,11 @@ class QAgent:
                 logger.log(f'S\': {next_state}', level=4)
 
                 self.curr_state = next_state
-                numPassos+=1
+                numPassos += 1
 
                 if self.curr_state[4] or self.curr_state[3]:
                     break
-            with open("data/total_reward.csv", "a") as file:
+            with open(f"data/runs/total_reward{starting_level}-{self.learning_rate}-{self.discount_factor}-{self.xExploitation}.csv", "a") as file:
                 logger_cvs = Logger(1,file)
                 logger_cvs.log_csv(total_reward, numPassos)
         
