@@ -1,6 +1,7 @@
 from cmath import sqrt
 import logging
 import os
+import random
 from ThinIce import Game
 import pickle as pkl
 from queue import PriorityQueue
@@ -72,8 +73,8 @@ class AStarAgent:
         for key, value in self.map.items():
             self.logger.info(f'{key}: {value}')
 
-    def h(self, tile):
-        return abs(tile[0] - self.goal[0]) + abs(tile[1] - self.goal[1])
+    def h(self, tile1, tile2):
+        return abs(tile1[0] - tile2[0]) + abs(tile1[1] - tile2[1])
 
     def next_states(self, tile):
         # print("tile:", tile)
@@ -83,64 +84,15 @@ class AStarAgent:
         for i in range(len(moves)):
             if moves[i] == 1:
                 if i == 0:
-                    next_states.append((tile[0], tile[1] - 1))
+                    next_states.append(((tile[0], tile[1] - 1), i))
                 elif i == 1:
-                    next_states.append((tile[0] - 1, tile[1]))
+                    next_states.append(((tile[0] - 1, tile[1]), i))
                 elif i == 2:
-                    next_states.append((tile[0], tile[1] + 1))
+                    next_states.append(((tile[0], tile[1] + 1), i))
                 elif i == 3:
-                    next_states.append((tile[0] + 1, tile[1]))
+                    next_states.append(((tile[0] + 1, tile[1]), i))
 
         return next_states
-    
-    def get_moves(self, move_list):
-        moves = []
-        # print("move_list[0]:", moves)
-        # reverse move_list
-        move_list.reverse()
-        moves.append(move_list[0])
-
-        # print("move_list_reversed:", move_list)
-        for i in range(len(move_list) - 1):
-            # print("--------------------")
-            # print("move_list[i]:", move_list[i], "move_list[i+1]:", move_list[i+1])
-            if move_list[i+1] != self.start:
-                if (moves[-1][0] == move_list[i+1][0] + 1 and moves[-1][1] == move_list[i+1][1]):
-                    #print("move_list[i][0]:", move_list[i][0], "move_list[i+1][0]", move_list[i+1][0], "move_list[i][1]:", move_list[i][1], "move_list[i+1][1]:", move_list[i+1][1])
-                    # print("append em:", move_list[i+1])
-                    moves.append(move_list[i+1])
-                elif (moves[-1][0] == move_list[i+1][0] - 1 and moves[-1][1] == move_list[i+1][1]):
-                    #print("move_list[i][0]:", move_list[i][0], "move_list[i+1][0]", move_list[i+1][0], "move_list[i][1]:", move_list[i][1], "move_list[i+1][1]:", move_list[i+1][1])
-                    # print("append em:", move_list[i+1])
-                    moves.append(move_list[i+1])
-                elif (moves[-1][0] == move_list[i+1][0] and moves[-1][1] == move_list[i+1][1] + 1):
-                    #print("move_list[i][0]:", move_list[i][0], "move_list[i+1][0]", move_list[i+1][0], "move_list[i][1]:", move_list[i][1], "move_list[i+1][1]:", move_list[i+1][1])
-                    # print("append em:", move_list[i+1])
-                    moves.append(move_list[i+1])
-                elif (moves[-1][0] == move_list[i+1][0] and moves[-1][1] == move_list[i+1][1] - 1):
-                    #print("move_list[i][0]:", move_list[i][0], "move_list[i+1][0]", move_list[i+1][0], "move_list[i][1]:", move_list[i][1], "move_list[i+1][1]:", move_list[i+1][1])
-                    # print("append em:", move_list[i+1])
-                    moves.append(move_list[i+1])
-
-        moves.reverse()
-        return moves
-    
-    def treat_moves(self, move_list):
-        stack = []
-        for i in range(len(move_list) - 1):
-            print("--------------------")
-            print("checking:", move_list[i+1])
-            print("stack[-1]:", stack[len(stack)])
-            if len(stack) == 0:
-                stack.append(move_list[i])
-            elif move_list[i+1] in self.next_states(stack[-1]):
-                stack.append(move_list[i])
-            # else:
-            #     while move_list[i+1] not in self.next_states(stack[-1]):
-            #         stack.pop()
-            #         print("stack pop:", stack)
-            print("stack:", stack)
-        return stack
 
     def aStar(self, starting_level=1):
         m = self.thinIce_game.new(starting_level)
@@ -151,8 +103,6 @@ class AStarAgent:
             self.create_map(m)
             self.save_map(starting_level)
             self.save_locations(starting_level)
-
-        move_stack = []
 
         # print("Map:")
         # for key, value in self.map.items():
@@ -167,7 +117,7 @@ class AStarAgent:
 
         # Setando f() dos tiles
         f_score = {tile: float('inf') for tile in self.map}
-        f_score[self.start] = self.h(self.start)
+        f_score[self.start] = self.h(self.start, self.goal)
 
         # Printando os valores iniciais de g() e f()
         # print("g_score:")
@@ -181,66 +131,64 @@ class AStarAgent:
 
         # Setando a fila de prioridade
         open_set = PriorityQueue()
-        open_set.put((self.start))
+        open_set.put((self.h(self.start, self.goal), self.h(self.start, self.goal), self.start))
         
-        # print("open_set:\n[(x, y), f_score]")
-        # for i in open_set.queue:
-        #     print(i)
-        move_list = []
-        current = open_set.get()
-        move_list.append((current))
-        move_stack.append((current))
+        aPath = {}
 
-        i = 0
+        while not open_set.empty():
+            current_tile = open_set.get()[2]
+            if current_tile == self.goal:
+                print("Goal reached!")
+                break
 
-        while current != self.goal:
+            for i in range(4):
+                if self.map[current_tile][i] == 1:
+                    if i == 0:
+                        neighbor = (current_tile[0], current_tile[1] - 1)
+                    elif i == 1:
+                        neighbor = (current_tile[0] - 1, current_tile[1])
+                    elif i == 2:
+                        neighbor = (current_tile[0], current_tile[1] + 1)
+                    elif i == 3:
+                        neighbor = (current_tile[0] + 1, current_tile[1])
 
-            neighbors = self.next_states(current)
-            
-            # neighbors = sorted(neighbors, key=lambda x: x[1])
-            # print("--------------------")
-            # print("current:", current)
+                    temp_g_score = g_score[current_tile] + 1
+                    temp_f_score = temp_g_score + self.h(neighbor, self.goal)
 
-            for neighbor in neighbors:
-                g_score[neighbor] = g_score[current] + 1
-                f_score[neighbor] = g_score[neighbor] + self.h(neighbor)
-            
-            # for neighbor in neighbors:
-            #     print("n:", neighbor, "f:", f_score[neighbor])
+                    if temp_f_score < f_score[neighbor]:
+                        g_score[neighbor] = temp_g_score
+                        f_score[neighbor] = temp_f_score
+                        open_set.put((temp_f_score, self.h(neighbor, self.goal), neighbor))
+                        aPath[neighbor] = current_tile
 
-            for neighbor in neighbors:
-                if neighbor not in open_set.queue:
-                    open_set.put((neighbor))
+        fwd_path = {}
+        tile = self.goal
+        while tile != self.start:
+            fwd_path[aPath[tile]] = tile
+            tile = aPath[tile]
 
-            open_set.queue.sort(key=lambda x: f_score[x])
-
-            current = open_set.get()
-            if current not in move_list:
-                move_list.append((current))
-
-            # if current in move_stack:
-            #     # remove every element after current
-            #     while move_stack[-1] != current:
-            #         move_stack.pop()
-            # else:
-            #     move_stack.append((current))
-
-            print("move_list:", move_list)
-            print("open_set:", open_set.queue)
-            print("move_stack:", move_stack)
-
-            i += 1
-
-        # print("--------------------")
-        # print("move_list:", move_list)
-
-        # move_list = self.get_moves(move_list)
-        # print("move_list_tratada:", move_list)
-        print("--------------------")
-        print("move_list:", move_list)
-        move_list = self.treat_moves(move_list)
-        print("move_list_tratada:", move_list)
-
-
-            
+        political_path = list(fwd_path.values())
+        political_path.append(self.start)
+        political_path.reverse()
         
+        return political_path
+    
+    def convert_path(self, path):
+        converted_path = []
+        for i in range(len(path) - 1):
+            if path[i][0] == path[i+1][0]:
+                if path[i][1] > path[i+1][1]:
+                    converted_path.append('up')
+                else: converted_path.append('down')
+            else:
+                if path[i][0] > path[i+1][0]:
+                    converted_path.append('left')
+                else: converted_path.append('right')
+        return converted_path
+
+    def exploit(self, starting_level=1, path=[]):
+        self.thinIce_game.new(starting_level)
+
+        for action in self.convert_path(path):
+            self.thinIce_game.run(action)
+

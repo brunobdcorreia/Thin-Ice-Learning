@@ -8,8 +8,7 @@ sys.path.append(parent)
 import importlib.util
 import argparse
 from qAgent import QAgent
-# from aStarAgent import AStarAgent
-from aStarAgent2 import AStarAgent
+from aStarAgent import AStarAgent
 
 def module_is_installed(module_name: str) -> bool:
     spec = importlib.util.find_spec(module_name)
