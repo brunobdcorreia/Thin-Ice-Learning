@@ -34,7 +34,7 @@ def parse_cmd_arguments():
     parser = argparse.ArgumentParser(description='Trabalho de IA')
     parser.add_argument('--dependency-file-path', type=str, default='../requirements.txt', help='Caminho para o arquivo de dependências')
     parser.add_argument('--learning-rate', type=float, default=0.75, help='Taxa de aprendizado do agente')
-    parser.add_argument('--algorithm', type=str, default='a-star', help='Algoritmo a ser executado. Pode ser A-star ou Q-learning')
+    parser.add_argument('--algorithm', type=str, default='q-learning', help='Algoritmo a ser executado. Pode ser A-star ou Q-learning')
     parser.add_argument('--num-episodes', type=int, default=10, help='Número de episódios para treinamento')
     parser.add_argument('--discount-factor', type=float, default=0.99, help='Fator de desconto do agente.')
     parser.add_argument('--starting-level', type=int, default=1, help='Nível inicial do jogo.')
