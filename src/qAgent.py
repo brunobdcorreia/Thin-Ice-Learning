@@ -44,14 +44,20 @@ class QAgent:
 
 
     # Salva Q-table em um TXT
-    def save_q_table(self, current_level: int) -> None:
-        filename = f'data/behavior/any_percent/q_table{current_level}.pkl'
+    def save_q_table(self, current_level: int, metricas) -> None:
+        if metricas:
+            filename = f'data/behavior/metrics/q_table{current_level}.pkl'
+        else:
+            filename = f'data/behavior/any_percent/q_table{current_level}.pkl'
         with open(filename, 'wb') as f:
             pkl.dump(self.q_table, f)
 
     # Carrega Q-table de um TXT
-    def load_q_table(self, current_level: int) -> None:
-        filename = f'data/behavior/any_percent/q_table{current_level}.pkl'
+    def load_q_table(self, current_level: int, metricas) -> None:
+        if metricas:
+            filename = f'data/behavior/metrics/q_table{current_level}.pkl'
+        else:
+            filename = f'data/behavior/any_percent/q_table{current_level}.pkl'
         if os.path.exists(filename):
             with open(filename, 'rb') as f:
                 self.q_table = pkl.load(f)
@@ -75,24 +81,24 @@ class QAgent:
         reward = None
         # Se o agente tentou ir em direção a parede, ou à água, recompensa é negativa
         if not next_state[2]:
-            reward = -50
+            reward = -5
         # Se morreu, recompensa é negativa
         elif next_state[3]:
-            reward = -100
+            reward = -5
         # Se completou a fase
         elif next_state[4]:
             reward = 100
         # Punir por andar
-        else: reward = -5
+        else: reward = -1
 
         # [i, j, up, left, down, right]
         sample = reward + self.discount_factor * max(self.q_table[(next_state[0], next_state[1])])
         return sample
 
-    def explore(self, starting_level=1):
+    def explore(self, starting_level=1, metricas=False):
         m = self.thinIce_game.new(starting_level)
 
-        self.load_q_table(starting_level)
+        self.load_q_table(starting_level, metricas)
 
         if self.q_table == {}:
             self.create_q_table(m)
@@ -126,7 +132,7 @@ class QAgent:
                 self.curr_state = next_state
 
                 if self.curr_state[4] or self.curr_state[3]:
-                    self.save_q_table(starting_level)
+                    self.save_q_table(starting_level, metricas)
                     # Clear self.q_table
                     self.q_table.clear()
                     break
@@ -136,39 +142,45 @@ class QAgent:
             self.print_q_table()
 
 
-    def exploit(self, starting_level=1):
+    def exploit(self, starting_level=1, metricas=False):
         m = self.thinIce_game.new(starting_level)
 
-        self.load_q_table(starting_level)
+        self.load_q_table(starting_level, metricas)
 
         if self.q_table == {}:
             return print('Q-table vazia. Execute o método explore() primeiro.')
-        
+
         print("Q-Table:")
         for key, value in self.q_table.items():
             print(f'{key}: {value}')
+        
+        # print("Q-Table:")
+        # for key, value in self.q_table.items():
+        #     print(f'{key}: {value}')
 
         self.curr_state = self.thinIce_game.run(self.action[random.randint(0, 3)])
-
+        total_reward = 0
         try:
             while True:         
                 # [x_pos, y_pos, moved, death, solved, level]
                 # Take random actions
                 
-                print('Alterando estado...')
-                print('S: ', self.curr_state)
+                #print('S: ', self.curr_state)
+                selected_action = np.argmax(self.q_table[(self.curr_state[0], self.curr_state[1])])
+                action_taken = self.action[selected_action]
 
-                action_taken = self.action[np.argmax(self.q_table[(self.curr_state[0], self.curr_state[1])])]
-                print('A: ', action_taken)
+                #print('A: ', action_taken)
 
                 next_state = self.thinIce_game.run(action_taken)
-                print('S\': ', next_state)
+                total_reward += self.get_sample(1, next_state)
+
+                #print('S\': ', next_state)
 
                 self.curr_state = next_state
 
-                if self.curr_state[4] or self.curr_state[3]:
+                if self.curr_state[4] or self.curr_state[3] or (metricas and not self.curr_state[2]):
+                    print("Total: ", total_reward)
                     break
-        
         except Exception as e:
             self.logger.info(f'Erro: {e}')
             self.print_q_table()
