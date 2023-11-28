@@ -8,8 +8,8 @@ sys.path.append(parent)
 import importlib.util
 import argparse
 from qAgent import QAgent
-# from aStarAgent import AStarAgent
 from aStarAgent2 import AStarAgent
+from timeit import default_timer as timer 
 
 def module_is_installed(module_name: str) -> bool:
     spec = importlib.util.find_spec(module_name)
@@ -43,7 +43,7 @@ def parse_cmd_arguments():
     parser.add_argument('--metricas', type=bool, default=False, help='Roda cada sessão de treinamento e mostra o total de recompensa')
     parser.add_argument('--explore', type=bool, default=False, help='Se o agente vai explorar ou não')
     parser.add_argument('--xExploit', type=float, default=0, help='Porcentagem de Exploitation vs Exploration')
-    parser.add_argument('--full-run', type=bool, default=True, help='Se o agente vai exploitar todos os mapas')
+    parser.add_argument('--full-run', type=bool, default=False, help='Se o agente vai exploitar todos os mapas')
 
     args = parser.parse_args()
     return args
@@ -78,7 +78,10 @@ if __name__ == "__main__":
         game_agent = AStarAgent()
         if args.exploit:
             path = game_agent.aStar(args.starting_level)
+            startTime = timer()
             game_agent.exploit(args.starting_level, path)
+            deltaTime = timer() - startTime
+            print(f"Tempo total de execução: {deltaTime}")
         elif args.full_run:
             for i in range(1, 10):
                 print(f'Episódio {i}')

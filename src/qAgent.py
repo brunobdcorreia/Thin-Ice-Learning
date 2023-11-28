@@ -109,7 +109,7 @@ class QAgent:
                 
                 # print('Alterando estado...')
                 y = random.random()
-                if y <= self.xExploitation:
+                if y > self.xExploitation:
                     action_taken = self.action[np.argmax(self.q_table[(self.curr_state[0], self.curr_state[1])])]
                 else:
                     action_taken = self.action[random.randint(0, 3)]
@@ -145,17 +145,13 @@ class QAgent:
         if self.q_table == {}:
             return print('Q-table vazia. Execute o método explore() primeiro.')
         
-        with open(f"data/runs/q_state{starting_level}-{self.learning_rate}-{self.discount_factor}-{self.xExploitation}.csv", "a") as file:
-            logger = Logger(1,file)
-            for key, value in self.q_table.items():
-                logger.log_csv(*key,*value, level=1)
-
         self.curr_state = self.thinIce_game.run(self.action[random.randint(0, 3)])
 
         total_reward = 0
         startTime = timer()
         logger = Logger(1)
         numPassos = 0;
+        terminou = 0
         try:
             while True:         
                 if (timer() - startTime > time_in_seconds):
@@ -173,10 +169,11 @@ class QAgent:
                 numPassos += 1
 
                 if self.curr_state[4] or self.curr_state[3]:
+                    terminou = 1
                     break
             with open(f"data/runs/total_reward{starting_level}-{self.learning_rate}-{self.discount_factor}-{self.xExploitation}.csv", "a") as file:
                 logger_cvs = Logger(1,file)
-                logger_cvs.log_csv(total_reward, numPassos)
+                logger_cvs.log_csv(total_reward, numPassos, terminou)
         
         except Exception as e:
             self.logger.info(f'Erro: {e}')
