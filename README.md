@@ -13,7 +13,7 @@ Além do esforço pela preservação do jogo, em torno de Gelo Fino se contruiu 
 
 Esse trabalho tem como objetivo desenvolver dois agentes de inteligência artifical que, para um dada fase de Gelo Fino, forneça não apenas o caminho ótimo mas também sirva como referência para o menor tempo possível de uma run Any\%.
 
-Para isso, utilizando uma versão em python de Gelo Fino modificada, dois agentes que aprendem sobre as fases e iteram sobre o jogo foram construídos, um pelo algoritmo A* e o outro por Q-Learning.
+Para isso, utilizando uma versão em python de Gelo Fino modificada (originalmente desenvolvida por Victor Li, disponível em https://github.com/gglue/Thin-Ice-Python), dois agentes que aprendem sobre as fases e iteram sobre o jogo foram construídos, um pelo algoritmo A* e o outro por Q-Learning.
 ## Algoritmos
 
 Para a construção dos agentes que iterariam sobre o jogo e obteriam o menor caminho para cada fase, optamos por adotar a implementação dos algoritmos A* (A-star) e Q-Learning. Para cada abordagem, uma classe de agente distinta foi desenvolvida a fim de manter maior consistência dos métodos que envolvem cada implementação.
